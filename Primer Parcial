@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Polígonos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px;
+        }
+        canvas {
+            border: 1px solid black;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Generador de Polígonos Regulares</h1>
+    <form id="polygonForm">
+        <!-- Campo para ingresar el número de lados del polígono -->
+        <label for="nLados">Número de lados (n):</label>
+        <input type="number" id="nLados" name="nLados" min="3" required>
+        <br><br>
+        <!-- Campo para ingresar el apotema del polígono -->
+        <label for="apotema">Apotema (a):</label>
+        <input type="number" id="apotema" name="apotema" required>
+        <br><br>
+        <!-- Selector de color para el relleno del polígono -->
+        <label for="color">Color de relleno:</label>
+        <input type="color" id="color" name="color" value="#ff0000">
+        <br><br>
+        <!-- Selección del tipo de coordenadas del centro (cartesianas o polares) -->
+        <label for="coordType">Tipo de coordenadas del centro:</label>
+        <select id="coordType" name="coordType">
+            <option value="cartesianas">Cartesianas</option>
+            <option value="polares">Polares</option>
+        </select>
+        <br><br>
+        <!-- Campo para ingresar la coordenada X o el radio si las coordenadas son polares -->
+        <label for="xCoord">Coordenada X (o radio si es polar):</label>
+        <input type="number" id="xCoord" name="xCoord" required>
+        <br><br>
+        <!-- Campo para ingresar la coordenada Y o el ángulo si las coordenadas son polares -->
+        <label for="yCoord">Coordenada Y (o ángulo si es polar):</label>
+        <input type="number" id="yCoord" name="yCoord" required>
+        <br><br>
+        <!-- Botón para dibujar el polígono -->
+        <button type="button" onclick="procesarEntrada()">Dibujar Polígono</button>
+    </form>
+
+    <!-- Canvas donde se dibujará el polígono -->
+    <canvas id="canvas" width="500" height="500"></canvas>
+
+    <script>
+        /**
+         * Obtiene los valores del formulario, calcula el centro del polígono,
+         * y llama a la función para dibujar el polígono en el canvas.
+         */
+        function procesarEntrada() {
+            // Obtener el elemento del canvas y su contexto 2D para dibujar
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+
+            // Obtener los valores ingresados por el usuario
+            const nLados = parseInt(document.getElementById('nLados').value);
+            const apotema = parseFloat(document.getElementById('apotema').value);
+            const color = document.getElementById('color').value;
+            const coordType = document.getElementById('coordType').value;
+            const cx = obtenerCentroX(coordType);
+            const cy = obtenerCentroY(coordType);
+
+            if (!nLados || !apotema) {
+                alert('Debes ingresar el número de lados y el apotema');
+                return;
+            }
+
+            // Calcular el radio del polígono circunscrito
+            const radioPoligono = apotema / Math.cos(Math.PI / nLados);
+
+            // Limpiar el canvas antes de dibujar
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            dibujarPoligono(ctx, nLados, radioPoligono, cx, cy, color);
+        }
+
+        /**
+         * Obtiene la coordenada X del centro dependiendo del tipo de coordenadas.
+         * @param {string} coordType - Tipo de coordenadas (cartesianas o polares).
+         * @returns {number} Coordenada X.
+         */
+        function obtenerCentroX(coordType) {
+            const xCoord = parseFloat(document.getElementById('xCoord').value);
+            if (coordType === "polares") {
+                const radio = xCoord;
+                const angulo = parseFloat(document.getElementById('yCoord').value) * Math.PI / 180;
+                return radio * Math.cos(angulo) + canvas.width / 2;
+            }
+            return xCoord;
+        }
+
+        /**
+         * Obtiene la coordenada Y del centro dependiendo del tipo de coordenadas.
+         * @param {string} coordType - Tipo de coordenadas (cartesianas o polares).
+         * @returns {number} Coordenada Y.
+         */
+        function obtenerCentroY(coordType) {
+            const yCoord = parseFloat(document.getElementById('yCoord').value);
+            if (coordType === "polares") {
+                const radio = parseFloat(document.getElementById('xCoord').value);
+                const angulo = yCoord * Math.PI / 180;
+                return radio * Math.sin(angulo) + canvas.height / 2;
+            }
+            return yCoord;
+        }
+
+        /**
+         * Dibuja un polígono regular en el canvas.
+         * @param {CanvasRenderingContext2D} ctx - Contexto 2D del canvas.
+         * @param {number} nLados - Número de lados del polígono.
+         * @param {number} radioPoligono - Radio del polígono circunscrito.
+         * @param {number} cx - Coordenada X del centro del polígono.
+         * @param {number} cy - Coordenada Y del centro del polígono.
+         * @param {string} color - Color de relleno del polígono.
+         */
+        function dibujarPoligono(ctx, nLados, radioPoligono, cx, cy, color) {
+            ctx.beginPath();
+
+            // Ajustar el ángulo inicial para que los polígonos con un número par de lados queden rectos
+            const anguloInicial = nLados % 2 === 0 ? Math.PI / nLados : -Math.PI / 2;
+
+            for (let i = 0; i < nLados; i++) {
+                const angulo = 2 * Math.PI * i / nLados + anguloInicial;
+                const x = cx + radioPoligono * Math.cos(angulo);
+                const y = cy + radioPoligono * Math.sin(angulo);
+
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.closePath();
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.stroke();
+        }
+    </script>
+</body>
+</html>
